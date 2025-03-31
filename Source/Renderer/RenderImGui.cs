@@ -1,4 +1,6 @@
-﻿using UnityEngine.Rendering;
+﻿using System;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.RenderGraphModule;
 #if HAS_URP
 using UnityEngine.Rendering.Universal;
 using UnityEngine;
@@ -13,10 +15,12 @@ namespace UImGui.Renderer
 		{
 			public CommandBuffer commandBuffer;
 
+			[Obsolete]
 			public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
 			{
 				context.ExecuteCommandBuffer(commandBuffer);
 			}
+				
 		}
 
 		[HideInInspector]

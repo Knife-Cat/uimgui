@@ -128,7 +128,7 @@ namespace UImGui.Renderer
 
 			for (int n = 0, nMax = drawData.CmdListsCount; n < nMax; ++n)
 			{
-				ImDrawListPtr drawList = drawData.CmdLists[n];
+				ImDrawListPtr drawList = drawData.CmdLists[n];  
 
 				unsafe
 				{
@@ -210,9 +210,10 @@ namespace UImGui.Renderer
 
 							// TODO: Implement ImDrawCmdPtr.GetTexID().
 							bool hasTexture = _textureManager.TryGetTexture(prevTextureId, out UnityEngine.Texture texture);
-							Assert.IsTrue(hasTexture, $"Texture {prevTextureId} does not exist. Try to use UImGuiUtility.GetTextureID().");
-
-							_materialProperties.SetTexture(_textureID, texture);
+							//Assert.IsTrue(hasTexture, $"Texture {prevTextureId} does not exist. Try to use UImGuiUtility.GetTextureID().");
+							
+							if(texture)
+								_materialProperties.SetTexture(_textureID, texture ?? Texture2D.blackTexture);
 						}
 
 						commandBuffer.EnableScissorRect(new Rect(clip.x, fbSize.y - clip.w, clip.z - clip.x, clip.w - clip.y)); // Invert y.

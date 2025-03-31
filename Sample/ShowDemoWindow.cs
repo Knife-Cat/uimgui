@@ -40,15 +40,13 @@ namespace UImGui
 			if (ImGui.Begin("Plot Window Sample"))
 			{
 				ImGui.SetNextWindowSize(Vector2.one * 200, ImGuiCond.Once);
-				ImPlot.BeginPlot("Plot test");
-				ImPlot.PlotBars("My Bar Plot", ref _barValues[0], _barValues.Length + 1);
-				ImPlot.PlotLine("My Line Plot", ref _xValues[0], ref _yValues[0], _xValues.Length, 0, 0);
-				ImPlot.EndPlot();
-
+				ImPlot.ShowDemoWindow();
 				ImGui.End();
 			}
 #endif
 
+
+/*
 #if !UIMGUI_REMOVE_IMNODES
 			if (ImGui.Begin("Nodes Window Sample"))
 			{
@@ -65,7 +63,7 @@ namespace UImGui
 				imnodes.EndInputAttribute();
 
 				imnodes.BeginOutputAttribute(3);
-				ImGui.Indent(40);
+				ImGui.Indent(40);  
 				ImGui.Text("output");
 				imnodes.EndOutputAttribute();
 
@@ -74,6 +72,8 @@ namespace UImGui
 				ImGui.End();
 			}
 #endif
+*/
+
 
 			ImGui.ShowDemoWindow();
 		}

@@ -123,7 +123,7 @@ namespace UImGui
 
 		private void Awake()
 		{
-			_context = UImGuiUtility.CreateContext();
+			
 		}
 
 		private void OnDestroy()
@@ -138,6 +138,8 @@ namespace UImGui
 				enabled = false;
 				throw new System.Exception($"Failed to start: {reason}.");
 			}
+			
+			_context = UImGuiUtility.CreateContext();
 
 			if (_camera == null)
 			{
@@ -166,6 +168,7 @@ namespace UImGui
 			UImGuiUtility.SetCurrentContext(_context);
 
 			ImGuiIOPtr io = ImGui.GetIO();
+			ImGuiPlatformIOPtr platformIO = ImGui.GetPlatformIO();
 
 			_initialConfiguration.ApplyTo(io);
 			_style?.ApplyTo(ImGui.GetStyle());
@@ -174,7 +177,7 @@ namespace UImGui
 			_context.TextureManager.Initialize(io);
 
 			IPlatform platform = PlatformUtility.Create(_platformType, _cursorShapes, _iniSettings);
-			SetPlatform(platform, io);
+			SetPlatform(platform, io, platformIO);
 			if (_platform == null)
 			{
 				Fail(nameof(_platform));
@@ -186,7 +189,7 @@ namespace UImGui
 				Fail(nameof(_renderer));
 			}
 
-			if (_doGlobalEvents)
+			if (_doGlobalEvents)   
 			{
 				UImGuiUtility.DoOnInitialize(this);
 			}
@@ -196,10 +199,11 @@ namespace UImGui
 		private void OnDisable()
 		{
 			UImGuiUtility.SetCurrentContext(_context);
-			ImGuiIOPtr io = ImGui.GetIO();
+			ImGuiIOPtr io = ImGui.GetIO();  
+			ImGuiPlatformIOPtr platformIO = ImGui.GetPlatformIO();
 
 			SetRenderer(null, io);
-			SetPlatform(null, io);
+			SetPlatform(null, io, platformIO);
 
 			UImGuiUtility.SetCurrentContext(null);
 
@@ -251,8 +255,8 @@ namespace UImGui
 			ImGuiIOPtr io = ImGui.GetIO();
 
 			Constants.PrepareFrameMarker.Begin(this);
-			_context.TextureManager.PrepareFrame(io);
 			_platform.PrepareFrame(io, _camera.pixelRect);
+			_context.TextureManager.PrepareFrame(io);
 			ImGui.NewFrame();
 #if !UIMGUI_REMOVE_IMGUIZMO
 			ImGuizmoNET.ImGuizmo.BeginFrame();
@@ -294,11 +298,11 @@ namespace UImGui
 			_renderer?.Initialize(io);
 		}
 
-		private void SetPlatform(IPlatform platform, ImGuiIOPtr io)
+		private void SetPlatform(IPlatform platform, ImGuiIOPtr io, ImGuiPlatformIOPtr platformIO)
 		{
-			_platform?.Shutdown(io);
+			_platform?.Shutdown(io, platformIO);
 			_platform = platform;
-			_platform?.Initialize(io, _initialConfiguration, "Unity " + _platformType.ToString());
+			_platform?.Initialize(io, _initialConfiguration, "Unity " + _platformType.ToString(), platformIO);
 		}
 	}
 }

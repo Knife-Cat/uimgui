@@ -12,14 +12,19 @@ namespace UImGui.Platform
 		/// 
 		/// </summary>
 		/// <param name="io"></param>
+		/// <param name="config"></param>
+		/// <param name="platformName"></param>
+		/// <param name="platformIO"></param>
 		/// <returns></returns>
-		bool Initialize(ImGuiIOPtr io, UIOConfig config, string platformName);
+		bool Initialize(ImGuiIOPtr io, UIOConfig config, string platformName, ImGuiPlatformIOPtr platformIO);
 
 		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="io"></param>
-		void Shutdown(ImGuiIOPtr io);
+		/// <param name="platformIOPtr"></param>
+		/// <param name="platformIO"></param>
+		void Shutdown(ImGuiIOPtr io, ImGuiPlatformIOPtr platformIOPtr);
 
 		/// <summary>
 		/// 

@@ -25,6 +25,7 @@ namespace UImGui.Texture
 		public unsafe void Initialize(ImGuiIOPtr io)
 		{
 			ImFontAtlasPtr atlasPtr = io.Fonts;
+			
 			atlasPtr.GetTexDataAsRGBA32(out byte* pixels, out int width, out int height, out int bytesPerPixel);
 
 			_atlasTexture = new Texture2D(width, height, TextureFormat.RGBA32, false, false)
@@ -65,6 +66,7 @@ namespace UImGui.Texture
 		{
 			IntPtr id = RegisterTexture(_atlasTexture);
 			io.Fonts.SetTexID(id);
+			io.Fonts.ClearTexData();
 		}
 
 		public bool TryGetTexture(IntPtr id, out UTexture texture)

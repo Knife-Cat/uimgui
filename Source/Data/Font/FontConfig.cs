@@ -29,10 +29,7 @@ namespace UImGui
 			" Useful e.g. if you are merging a non-pixel aligned font with the default font.  (default=false)" +
 			"If enabled, you can set OversampleH/V to 1.")]
 		public bool PixelSnapH;
-
-		[Tooltip("Extra spacing (in pixels) between glyphs. Only X axis is supported for now. (default=0, 0)")]
-		public Vector2 GlyphExtraSpacing;
-
+		
 		[Tooltip("Offest all glyphs from this font input. (default=0, 0)")]
 		public Vector2 GlyphOffset;
 
@@ -79,7 +76,6 @@ namespace UImGui
 			im.OversampleH = OversampleH;
 			im.OversampleV = OversampleV;
 			im.PixelSnapH = PixelSnapH;
-			im.GlyphExtraSpacing = GlyphExtraSpacing;
 			im.GlyphOffset = GlyphOffset;
 			im.GlyphMinAdvanceX = GlyphMinAdvanceX;
 			im.GlyphMaxAdvanceX = GlyphMaxAdvanceX;
@@ -101,7 +97,6 @@ namespace UImGui
 			OversampleH = im.OversampleH;
 			OversampleV = im.OversampleV;
 			PixelSnapH = im.PixelSnapH;
-			GlyphExtraSpacing = im.GlyphExtraSpacing;
 			GlyphOffset = im.GlyphOffset;
 			GlyphMinAdvanceX = im.GlyphMinAdvanceX;
 			GlyphMaxAdvanceX = im.GlyphMaxAdvanceX;

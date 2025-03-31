@@ -230,10 +230,11 @@ namespace UImGui.Platform
 
         #region Overrides of PlatformBase
 
-        public override bool Initialize(ImGuiIOPtr io, UIOConfig config, string platformName)
+        public override bool Initialize(ImGuiIOPtr io, UIOConfig config, string platformName,
+            ImGuiPlatformIOPtr platformIO)
         {
             InputSystem.onDeviceChange += OnDeviceChange;
-            base.Initialize(io, config, platformName);
+            base.Initialize(io, config, platformName, platformIO);
 
             io.BackendFlags |= ImGuiBackendFlags.HasMouseCursors;
 
@@ -247,9 +248,9 @@ namespace UImGui.Platform
             return true;
         }
 
-        public override void Shutdown(ImGuiIOPtr io)
+        public override void Shutdown(ImGuiIOPtr io, ImGuiPlatformIOPtr platformIOPtr)
         {
-            base.Shutdown(io);
+            base.Shutdown(io, platformIOPtr);
             InputSystem.onDeviceChange -= OnDeviceChange;
         }
 
