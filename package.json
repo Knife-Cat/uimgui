@@ -1,9 +1,9 @@
 {
-  "name": "com.psydack.uimgui",
-  "displayName": "UImGui",
-  "version": "5.0.0",
-  "description": "A Unity wrapper for ImGui",
-  "unity": "2019.4",
+  "name": "com.knifecat.uimgui",
+  "displayName": "UImGui Unity 6.0",
+  "version": "6.0.0",
+  "description": "A Unity wrapper for ImGui using Unity's Render Graph renderer",
+  "unity": "6000.0",
   "dependencies": {
   },
   "keywords": [
@@ -12,7 +12,7 @@
     "ui"
   ],
   "author": {
-    "name": "Psydack",
+    "name": "Psydack + Knife Cat Games, LLC",
     "url": "https://github.com/psydack"
   },
   "repository": {

@@ -1,3 +1,7 @@
+using System;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
 using ImGuiNET;
 using UImGui.Assets;
 using UImGui.Events;
@@ -9,300 +13,295 @@ using UnityEngine.Rendering;
 
 namespace UImGui
 {
-	// TODO: Check Multithread run.
-	public class UImGui : MonoBehaviour
-	{
-		private Context _context;
-		private IRenderer _renderer;
-		private IPlatform _platform;
-		private CommandBuffer _renderCommandBuffer;
+    // TODO: Check Multithread run.
+    public class UImGui : MonoBehaviour
+    {
+        private Context _context;
+        private IRenderer _renderer;
+        private IPlatform _platform;
+        private CommandBuffer _renderCommandBuffer;
 
-		[SerializeField]
-		private Camera _camera = null;
+        [SerializeField] private Camera _camera = null;
 
-		[SerializeField]
-		private RenderImGui _renderFeature = null;
+        [SerializeField] private RenderImGui _renderFeature = null;
 
-		[SerializeField]
-		private RenderType _rendererType = RenderType.Mesh;
+        [SerializeField] private RenderType _rendererType = RenderType.Mesh;
 
-		[SerializeField]
-		private InputType _platformType = InputType.InputManager;
+        [SerializeField] private InputType _platformType = InputType.InputManager;
 
-		[Tooltip("Null value uses default imgui.ini file.")]
-		[SerializeField]
-		private IniSettingsAsset _iniSettings = null;
+        [Tooltip("Null value uses default imgui.ini file.")] [SerializeField]
+        private IniSettingsAsset _iniSettings = null;
 
-		[Header("Configuration")]
+        [Header("Configuration")] [SerializeField]
+        private UIOConfig _initialConfiguration = new UIOConfig
+        {
+            ImGuiConfig = ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.DockingEnable,
 
-		[SerializeField]
-		private UIOConfig _initialConfiguration = new UIOConfig
-		{
-			ImGuiConfig = ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.DockingEnable,
+            DoubleClickTime = 0.30f,
+            DoubleClickMaxDist = 6.0f,
 
-			DoubleClickTime = 0.30f,
-			DoubleClickMaxDist = 6.0f,
+            DragThreshold = 6.0f,
 
-			DragThreshold = 6.0f,
+            KeyRepeatDelay = 0.250f,
+            KeyRepeatRate = 0.050f,
 
-			KeyRepeatDelay = 0.250f,
-			KeyRepeatRate = 0.050f,
+            FontGlobalScale = 1.0f,
+            FontAllowUserScaling = false,
 
-			FontGlobalScale = 1.0f,
-			FontAllowUserScaling = false,
+            DisplayFramebufferScale = Vector2.one,
 
-			DisplayFramebufferScale = Vector2.one,
+            MouseDrawCursor = false,
+            TextCursorBlink = false,
 
-			MouseDrawCursor = false,
-			TextCursorBlink = false,
+            ResizeFromEdges = true,
+            MoveFromTitleOnly = true,
+            ConfigMemoryCompactTimer = 1f,
+        };
 
-			ResizeFromEdges = true,
-			MoveFromTitleOnly = true,
-			ConfigMemoryCompactTimer = 1f,
-		};
+        [SerializeField] private FontInitializerEvent _fontCustomInitializer = new FontInitializerEvent();
 
-		[SerializeField]
-		private FontInitializerEvent _fontCustomInitializer = new FontInitializerEvent();
+        [SerializeField] private FontAtlasConfigAsset _fontAtlasConfiguration = null;
 
-		[SerializeField]
-		private FontAtlasConfigAsset _fontAtlasConfiguration = null;
+        [Header("Customization")] [SerializeField]
+        private ShaderResourcesAsset _shaders = null;
 
-		[Header("Customization")]
-		[SerializeField]
-		private ShaderResourcesAsset _shaders = null;
+        [SerializeField] private StyleAsset _style = null;
 
-		[SerializeField]
-		private StyleAsset _style = null;
+        [SerializeField] private CursorShapesAsset _cursorShapes = null;
 
-		[SerializeField]
-		private CursorShapesAsset _cursorShapes = null;
+        [SerializeField] private bool _doGlobalEvents = true; // Do global/default Layout event too.
 
-		[SerializeField]
-		private bool _doGlobalEvents = true; // Do global/default Layout event too.
+        private bool _isChangingCamera = false;
 
-		private bool _isChangingCamera = false;
+        public CommandBuffer CommandBuffer => _renderCommandBuffer;
 
-		public CommandBuffer CommandBuffer => _renderCommandBuffer;
+        #region Events
 
-		#region Events
-		public event System.Action<UImGui> Layout;
-		public event System.Action<UImGui> OnInitialize;
-		public event System.Action<UImGui> OnDeinitialize;
-		#endregion
+        public event System.Action<UImGui> Layout;
+        public event System.Action<UImGui> OnInitialize;
+        public event System.Action<UImGui> OnDeinitialize;
 
-		public void Reload()
-		{
-			OnDisable();
-			OnEnable();
-		}
+        #endregion
 
-		public void SetUserData(System.IntPtr userDataPtr)
-		{
-			_initialConfiguration.UserData = userDataPtr;
-			ImGuiIOPtr io = ImGui.GetIO();
-			_initialConfiguration.ApplyTo(io);
-		}
+        public void Reload()
+        {
+            OnDisable();
+            OnEnable();
+        }
 
-		public void SetCamera(Camera camera)
-		{
-			if (camera == null)
-			{
-				enabled = false;
-				throw new System.Exception($"Fail: {camera} is null.");
-			}
+        public void SetUserData(System.IntPtr userDataPtr)
+        {
+            _initialConfiguration.UserData = userDataPtr;
+            ImGuiIOPtr io = ImGui.GetIO();
+            _initialConfiguration.ApplyTo(io);
+        }
 
-			if(camera == _camera)
-			{
-				Debug.LogWarning($"Trying to change to same camera. Camera: {camera}", camera);
-				return;
-			}
+        public void SetCamera(Camera camera)
+        {
+            if (camera == null)
+            {
+                enabled = false;
+                throw new System.Exception($"Fail: {camera} is null.");
+            }
 
-			_camera = camera;
-			_isChangingCamera = true;
-		}
+            if (camera == _camera)
+            {
+                Debug.LogWarning($"Trying to change to same camera. Camera: {camera}", camera);
+                return;
+            }
 
-		private void Awake()
-		{
-			
-		}
+            _camera = camera;
+            _isChangingCamera = true;
+        }
 
-		private void OnDestroy()
-		{
-			UImGuiUtility.DestroyContext(_context);
-		}
+        private void Awake()
+        {
+        }
 
-		private void OnEnable()
-		{
-			void Fail(string reason)
-			{
-				enabled = false;
-				throw new System.Exception($"Failed to start: {reason}.");
-			}
-			
-			_context = UImGuiUtility.CreateContext();
 
-			if (_camera == null)
-			{
-				Fail(nameof(_camera));
-			}
+        private void OnDestroy()
+        {
+            UImGuiUtility.DestroyContext(_context);
+        }
 
-			if (_renderFeature == null && RenderUtility.IsUsingURP())
-			{
-				Fail(nameof(_renderFeature));
-			}
+        private void OnEnable()
+        {
+            void Fail(string reason)
+            {
+                enabled = false;
+                throw new System.Exception($"Failed to start: {reason}.");
+            }
 
-			_renderCommandBuffer = RenderUtility.GetCommandBuffer(Constants.UImGuiCommandBuffer);
+            _context = UImGuiUtility.CreateContext();
 
-			if (RenderUtility.IsUsingURP())
-			{
+            if (_camera == null)
+            {
+                Fail(nameof(_camera));
+            }
+
+            if (_renderFeature == null && RenderUtility.IsUsingURP())
+            {
+                Fail(nameof(_renderFeature));
+            }
+
+            _renderCommandBuffer = RenderUtility.GetCommandBuffer(Constants.UImGuiCommandBuffer);
+
+            if (RenderUtility.IsUsingURP())
+            {
 #if HAS_URP
-				_renderFeature.Camera = _camera;
+                _renderFeature.Camera = _camera;
 #endif
-				_renderFeature.CommandBuffer = _renderCommandBuffer;
-			}
-			else if (!RenderUtility.IsUsingHDRP())
-			{
-				_camera.AddCommandBuffer(CameraEvent.AfterEverything, _renderCommandBuffer);
-			}
+                _renderFeature.CommandBuffer = _renderCommandBuffer;
+            }
+            else if (!RenderUtility.IsUsingHDRP())
+            {
+                _camera.AddCommandBuffer(CameraEvent.AfterEverything, _renderCommandBuffer);
+            }
 
-			UImGuiUtility.SetCurrentContext(_context);
+            UImGuiUtility.SetCurrentContext(_context);
 
-			ImGuiIOPtr io = ImGui.GetIO();
-			ImGuiPlatformIOPtr platformIO = ImGui.GetPlatformIO();
+            ImGuiIOPtr io = ImGui.GetIO();
+            ImGuiPlatformIOPtr platformIO = ImGui.GetPlatformIO();
 
-			_initialConfiguration.ApplyTo(io);
-			_style?.ApplyTo(ImGui.GetStyle());
+            _initialConfiguration.ApplyTo(io);
+            _style?.ApplyTo(ImGui.GetStyle());
 
-			_context.TextureManager.BuildFontAtlas(io, _fontAtlasConfiguration, _fontCustomInitializer);
-			_context.TextureManager.Initialize(io);
+            _context.TextureManager.BuildFontAtlas(io, _fontAtlasConfiguration, _fontCustomInitializer);
+            _context.TextureManager.Initialize(io);
 
-			IPlatform platform = PlatformUtility.Create(_platformType, _cursorShapes, _iniSettings);
-			SetPlatform(platform, io, platformIO);
-			if (_platform == null)
-			{
-				Fail(nameof(_platform));
-			}
+            IPlatform platform = PlatformUtility.Create(_platformType, _cursorShapes, _iniSettings);
+            SetPlatform(platform, io, platformIO);
+            if (_platform == null)
+            {
+                Fail(nameof(_platform));
+            }
 
-			SetRenderer(RenderUtility.Create(_rendererType, _shaders, _context.TextureManager), io);
-			if (_renderer == null)
-			{
-				Fail(nameof(_renderer));
-			}
+            SetRenderer(RenderUtility.Create(_rendererType, _shaders, _context.TextureManager), io);
+            if (_renderer == null)
+            {
+                Fail(nameof(_renderer));
+            }
 
-			if (_doGlobalEvents)   
-			{
-				UImGuiUtility.DoOnInitialize(this);
-			}
-			OnInitialize?.Invoke(this);
-		}
+            if (_doGlobalEvents)
+            {
+                UImGuiUtility.DoOnInitialize(this);  
+            }
 
-		private void OnDisable()
-		{
-			UImGuiUtility.SetCurrentContext(_context);
-			ImGuiIOPtr io = ImGui.GetIO();  
-			ImGuiPlatformIOPtr platformIO = ImGui.GetPlatformIO();
+            OnInitialize?.Invoke(this);
+        }
 
-			SetRenderer(null, io);
-			SetPlatform(null, io, platformIO);
+        private void OnDisable()
+        {
+            UImGuiUtility.SetCurrentContext(_context);
+            ImGuiIOPtr io = ImGui.GetIO();
+            ImGuiPlatformIOPtr platformIO = ImGui.GetPlatformIO();
 
-			UImGuiUtility.SetCurrentContext(null);
 
-			_context.TextureManager.Shutdown();
-			_context.TextureManager.DestroyFontAtlas(io);
+            SetRenderer(null, io);
+            SetPlatform(null, io, platformIO);
 
-			if (RenderUtility.IsUsingURP())
-			{
-				if (_renderFeature != null)
-				{
+            UImGuiUtility.SetCurrentContext(null);
+
+            _context.TextureManager.Shutdown();
+            _context.TextureManager.DestroyFontAtlas(io);
+
+            if (RenderUtility.IsUsingURP())
+            {
+                if (_renderFeature != null)
+                {
 #if HAS_URP
-					_renderFeature.Camera = null;
+                    _renderFeature.Camera = null;
 #endif
-					_renderFeature.CommandBuffer = null;
-				}
-			}
-			else if(!RenderUtility.IsUsingHDRP())
-			{
-				if (_camera != null)
-				{
-					_camera.RemoveCommandBuffer(CameraEvent.AfterEverything, _renderCommandBuffer);
-				}
-			}
+                    _renderFeature.CommandBuffer = null;
+                }
+            }
+            else if (!RenderUtility.IsUsingHDRP())
+            {
+                if (_camera != null)
+                {
+                    _camera.RemoveCommandBuffer(CameraEvent.AfterEverything, _renderCommandBuffer);
+                }
+            }
 
-			if (_renderCommandBuffer != null)
-			{
-				RenderUtility.ReleaseCommandBuffer(_renderCommandBuffer);
-			}
+            if (_renderCommandBuffer != null)
+            {
+                RenderUtility.ReleaseCommandBuffer(_renderCommandBuffer);
+            }
 
-			_renderCommandBuffer = null;
+            _renderCommandBuffer = null;
 
-			if (_doGlobalEvents)
-			{
-				UImGuiUtility.DoOnDeinitialize(this);
-			}
-			OnDeinitialize?.Invoke(this);
-		}
+            if (_doGlobalEvents)
+            {
+                UImGuiUtility.DoOnDeinitialize(this);
+            }
 
-		private void Update()
-		{
-			if (RenderUtility.IsUsingHDRP())
-				return; // skip update call in hdrp
-			DoUpdate(this.CommandBuffer);
-		}
+            OnDeinitialize?.Invoke(this);
 
-		internal void DoUpdate(CommandBuffer buffer)
-		{
-			UImGuiUtility.SetCurrentContext(_context);
-			ImGuiIOPtr io = ImGui.GetIO();
+            Layout = null;
+        }
 
-			Constants.PrepareFrameMarker.Begin(this);
-			_platform.PrepareFrame(io, _camera.pixelRect);
-			_context.TextureManager.PrepareFrame(io);
-			ImGui.NewFrame();
+        private void Update()
+        {
+            if (RenderUtility.IsUsingHDRP())
+                return; // skip update call in hdrp
+            DoUpdate(this.CommandBuffer);
+        }
+
+
+        internal void DoUpdate(CommandBuffer buffer)
+        {
+            UImGuiUtility.SetCurrentContext(_context);
+            ImGuiIOPtr io = ImGui.GetIO();
+
+            Constants.PrepareFrameMarker.Begin(this);
+            _platform.PrepareFrame(io, _camera.pixelRect);
+            _context.TextureManager.PrepareFrame(io);
+            ImGui.NewFrame();
 #if !UIMGUI_REMOVE_IMGUIZMO
-			ImGuizmoNET.ImGuizmo.BeginFrame();
+            ImGuizmoNET.ImGuizmo.BeginFrame();
 #endif
-			Constants.PrepareFrameMarker.End();
+            Constants.PrepareFrameMarker.End();
 
-			Constants.LayoutMarker.Begin(this);
-			try
-			{
-				if (_doGlobalEvents)
-				{
-					UImGuiUtility.DoLayout(this);
-				}
+            Constants.LayoutMarker.Begin(this);
+            try
+            {
+                if (_doGlobalEvents)
+                {
+                    UImGuiUtility.DoLayout(this);
+                }
 
-				Layout?.Invoke(this);
-			}
-			finally
-			{
-				ImGui.Render();
-				Constants.LayoutMarker.End();
-			}
+                Layout?.Invoke(this);
+            }
+            finally
+            {
+                ImGui.Render();
+                Constants.LayoutMarker.End();
+            }
 
-			Constants.DrawListMarker.Begin(this);
-			_renderCommandBuffer.Clear();
-			_renderer.RenderDrawLists(buffer, ImGui.GetDrawData());
-			Constants.DrawListMarker.End();
+            Constants.DrawListMarker.Begin(this);
+            _renderCommandBuffer.Clear();
+            _renderer.RenderDrawLists(buffer, ImGui.GetDrawData());
+            Constants.DrawListMarker.End();
 
-			if (_isChangingCamera)
-			{
-				_isChangingCamera = false;
-				Reload();
-			}
-		}
+            if (_isChangingCamera)
+            {
+                _isChangingCamera = false;
+                Reload();
+            }
+        }
 
-		private void SetRenderer(IRenderer renderer, ImGuiIOPtr io)
-		{
-			_renderer?.Shutdown(io);
-			_renderer = renderer;
-			_renderer?.Initialize(io);
-		}
+        private void SetRenderer(IRenderer renderer, ImGuiIOPtr io)
+        {
+            _renderer?.Shutdown(io);
+            _renderer = renderer;
+            _renderer?.Initialize(io);
+        }
 
-		private void SetPlatform(IPlatform platform, ImGuiIOPtr io, ImGuiPlatformIOPtr platformIO)
-		{
-			_platform?.Shutdown(io, platformIO);
-			_platform = platform;
-			_platform?.Initialize(io, _initialConfiguration, "Unity " + _platformType.ToString(), platformIO);
-		}
-	}
+        private void SetPlatform(IPlatform platform, ImGuiIOPtr io, ImGuiPlatformIOPtr platformIO)
+        {
+            _platform?.Shutdown(io, platformIO);
+            _platform = platform;
+            _platform?.Initialize(io, _initialConfiguration, "Unity " + _platformType.ToString(), platformIO);
+        }
+    }
 }

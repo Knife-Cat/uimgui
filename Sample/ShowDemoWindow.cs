@@ -15,68 +15,17 @@ namespace UImGui
 {
 	public class ShowDemoWindow : MonoBehaviour
 	{
-#if !UIMGUI_REMOVE_IMPLOT
-		[SerializeField]
-		float[] _barValues = Enumerable.Range(1, 10).Select(x => (x * x) * 1.0f).ToArray();
-		[SerializeField]
-		float[] _xValues = Enumerable.Range(1, 10).Select(x => (x * x) * 1.0f).ToArray();
-		[SerializeField]
-		float[] _yValues = Enumerable.Range(1, 10).Select(x => (x * x) * 1.0f).ToArray();
-#endif
-
-		private void OnEnable()
+		
+		[ImguiLayout]
+		private static void OnLayout(UImGui uImGui)
 		{
-			UImGuiUtility.Layout += OnLayout;
-		}
-
-		private void OnDisable()
-		{
-			UImGuiUtility.Layout -= OnLayout;
-		}
-
-		private void OnLayout(UImGui uImGui)
-		{
-#if !UIMGUI_REMOVE_IMPLOT
-			if (ImGui.Begin("Plot Window Sample"))
-			{
-				ImGui.SetNextWindowSize(Vector2.one * 200, ImGuiCond.Once);
-				ImPlot.ShowDemoWindow();
-				ImGui.End();
-			}
-#endif
-
-
-/*
-#if !UIMGUI_REMOVE_IMNODES
-			if (ImGui.Begin("Nodes Window Sample"))
-			{
-				ImGui.SetNextWindowSize(Vector2.one * 300, ImGuiCond.Once);
-				imnodes.BeginNodeEditor();
-				imnodes.BeginNode(1);
-
-				imnodes.BeginNodeTitleBar();
-				ImGui.TextUnformatted("simple node :)");
-				imnodes.EndNodeTitleBar();
-
-				imnodes.BeginInputAttribute(2);
-				ImGui.Text("input");
-				imnodes.EndInputAttribute();
-
-				imnodes.BeginOutputAttribute(3);
-				ImGui.Indent(40);  
-				ImGui.Text("output");
-				imnodes.EndOutputAttribute();
-
-				imnodes.EndNode();
-				imnodes.EndNodeEditor();
-				ImGui.End();
-			}
-#endif
-*/
-
-
 			ImGui.ShowDemoWindow();
+
+			ImGui.Begin("Test");
+			ImGui.Button("This button.");
+			ImGui.End();
 		}
+		
 	}
 }
 
