@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -9,6 +10,7 @@ using UImGui.Platform;
 using UImGui.Renderer;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 
 namespace UImGui
@@ -20,10 +22,11 @@ namespace UImGui
         private IRenderer _renderer;
         private IPlatform _platform;
         private CommandBuffer _renderCommandBuffer;
-
+        
+        
         [SerializeField] private Camera _camera = null;
 
-        [SerializeField] private RenderImGui _renderFeature = null;
+        private RenderImGui _renderFeature = null;
 
         [SerializeField] private RenderType _rendererType = RenderType.Mesh;
 
@@ -100,8 +103,7 @@ namespace UImGui
         {
             if (camera == null)
             {
-                enabled = false;
-                throw new System.Exception($"Fail: {camera} is null.");
+                camera = Camera.main;
             }
 
             if (camera == _camera)
@@ -133,25 +135,56 @@ namespace UImGui
             }
 
             _context = UImGuiUtility.CreateContext();
-
-            if (_camera == null)
+            
+            if (RenderUtility.IsUsingURP())
             {
-                Fail(nameof(_camera));
+                //TODO: This is shitty as fuck, but i dont think its worth it to manually get the rendering features all the time.
+                //Change this to a slightly better system.
+                var renderingFeatures = Camera.main.GetComponent<UniversalAdditionalCameraData>();
+                var property = typeof(ScriptableRenderer).GetProperty("rendererFeatures",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (property == null)
+                {
+                    Fail("Failed to get scriptable render data.");
+                    return;
+                }
+                
+                List<ScriptableRendererFeature> features =
+                    property.GetValue(renderingFeatures.scriptableRenderer) as List<ScriptableRendererFeature>;
+
+                if (features == null)
+                {
+                    Fail("Failed to get render features from pipeline.");
+                }
+                
+                
+                foreach (var feature in features)
+                {
+                    if (feature is RenderImGui imguiFeature)
+                    {
+                        _renderFeature = imguiFeature;
+                    }
+                    
+                }
+                
+                if (_renderFeature == null)
+                {
+                    Debug.LogError("Add the imgui render feature to the render pipeline asset!!");
+                }
             }
 
-            if (_renderFeature == null && RenderUtility.IsUsingURP())
-            {
-                Fail(nameof(_renderFeature));
-            }
-
-            _renderCommandBuffer = RenderUtility.GetCommandBuffer(Constants.UImGuiCommandBuffer);
+          //  _renderCommandBuffer = RenderUtility.GetCommandBuffer(Constants.UImGuiCommandBuffer);
 
             if (RenderUtility.IsUsingURP())
             {
 #if HAS_URP
-                _renderFeature.Camera = _camera;
+                _renderFeature.Camera = _camera ?? Camera.main;
+                _renderFeature._Imgui = this;
 #endif
                 _renderFeature.CommandBuffer = _renderCommandBuffer;
+                
+                
             }
             else if (!RenderUtility.IsUsingHDRP())
             {
@@ -211,6 +244,7 @@ namespace UImGui
                 {
 #if HAS_URP
                     _renderFeature.Camera = null;
+                    _renderFeature._Imgui = null;
 #endif
                     _renderFeature.CommandBuffer = null;
                 }
@@ -242,19 +276,21 @@ namespace UImGui
 
         private void Update()
         {
-            if (RenderUtility.IsUsingHDRP())
+            
+            if (RenderUtility.IsUsingHDRP() || RenderUtility.IsUsingURP())
                 return; // skip update call in hdrp
-            DoUpdate(this.CommandBuffer);
         }
 
+        
 
-        internal void DoUpdate(CommandBuffer buffer)
+        internal void DoUpdate(RasterCommandBuffer cmd, Rect pixelRect)
         {
+            if (_platform == null) return;
             UImGuiUtility.SetCurrentContext(_context);
             ImGuiIOPtr io = ImGui.GetIO();
 
             Constants.PrepareFrameMarker.Begin(this);
-            _platform.PrepareFrame(io, _camera.pixelRect);
+            _platform.PrepareFrame(io, pixelRect);
             _context.TextureManager.PrepareFrame(io);
             ImGui.NewFrame();
 #if !UIMGUI_REMOVE_IMGUIZMO
@@ -279,8 +315,8 @@ namespace UImGui
             }
 
             Constants.DrawListMarker.Begin(this);
-            _renderCommandBuffer.Clear();
-            _renderer.RenderDrawLists(buffer, ImGui.GetDrawData());
+           // _renderCommandBuffer.Clear();
+            _renderer.RenderDrawLists(cmd, ImGui.GetDrawData());
             Constants.DrawListMarker.End();
 
             if (_isChangingCamera)

@@ -95,8 +95,7 @@ namespace UImGui
                                                     BindingFlags.Instance))
                     .Where(meth => meth.GetCustomAttributes(typeof(TAttribute), false).Length > 0)
                     .ToArray();
-
-
+                
                 foreach (var methodInfo in methods)
                 {
                     if (methodInfo.IsStatic)

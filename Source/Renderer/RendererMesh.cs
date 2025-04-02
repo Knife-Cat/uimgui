@@ -18,17 +18,17 @@ namespace UImGui.Renderer
 	{
 		// Skip all checks and validation when updating the mesh.
 		private const MeshUpdateFlags NoMeshChecks = MeshUpdateFlags.DontNotifyMeshUsers |
-			MeshUpdateFlags.DontRecalculateBounds |
-			MeshUpdateFlags.DontResetBoneBounds |
-			MeshUpdateFlags.DontValidateIndices;
+		                                             MeshUpdateFlags.DontRecalculateBounds |
+		                                             MeshUpdateFlags.DontResetBoneBounds |
+		                                             MeshUpdateFlags.DontValidateIndices;
 
 		// Color sent with TexCoord1 semantics because otherwise Color attribute would be reordered to come before UVs.
 		private static readonly VertexAttributeDescriptor[] _vertexAttributes = new[]
 		{
-			new VertexAttributeDescriptor(VertexAttribute.Position , VertexAttributeFormat.Float32, 2), // Position.
+			new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 2), // Position.
 			new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2), // UV.
-			new VertexAttributeDescriptor(VertexAttribute.TexCoord1, VertexAttributeFormat.UInt32 , 1), // Color.
-        };
+			new VertexAttributeDescriptor(VertexAttribute.TexCoord1, VertexAttributeFormat.UInt32, 1), // Color.
+		};
 
 		private Material _material;
 		private Mesh _mesh;
@@ -38,7 +38,7 @@ namespace UImGui.Renderer
 		private readonly TextureManager _textureManager;
 		private readonly MaterialPropertyBlock _materialProperties;
 
-		private int _prevSubMeshCount = 1;  // number of sub meshes used previously
+		private int _prevSubMeshCount = 1; // number of sub meshes used previously
 
 		public RendererMesh(ShaderResourcesAsset resources, TextureManager texManager)
 		{
@@ -83,7 +83,7 @@ namespace UImGui.Renderer
 			}
 		}
 
-		public void RenderDrawLists(CommandBuffer commandBuffer, ImDrawDataPtr drawData)
+		public void RenderDrawLists(RasterCommandBuffer commandBuffer, ImDrawDataPtr drawData)
 		{
 			Vector2 fbOSize = drawData.DisplaySize * drawData.FramebufferScale;
 
@@ -118,6 +118,7 @@ namespace UImGui.Renderer
 				_mesh.Clear(true);
 				_mesh.subMeshCount = _prevSubMeshCount = subMeshCount;
 			}
+
 			_mesh.SetVertexBufferParams(drawData.TotalVtxCount, _vertexAttributes);
 			_mesh.SetIndexBufferParams(drawData.TotalIdxCount, IndexFormat.UInt16);
 
@@ -128,13 +129,14 @@ namespace UImGui.Renderer
 
 			for (int n = 0, nMax = drawData.CmdListsCount; n < nMax; ++n)
 			{
-				ImDrawListPtr drawList = drawData.CmdLists[n];  
+				ImDrawListPtr drawList = drawData.CmdLists[n];
 
 				unsafe
 				{
 					// TODO: Convert NativeArray to C# array or list (remove collections).
-					NativeArray<ImDrawVert> vtxArray = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<ImDrawVert>(
-						(void*)drawList.VtxBuffer.Data, drawList.VtxBuffer.Size, Allocator.None);
+					NativeArray<ImDrawVert> vtxArray =
+						NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<ImDrawVert>(
+							(void*)drawList.VtxBuffer.Data, drawList.VtxBuffer.Size, Allocator.None);
 					NativeArray<ushort> idxArray = NativeArrayUnsafeUtility.ConvertExistingDataToNativeArray<ushort>(
 						(void*)drawList.IdxBuffer.Data, drawList.IdxBuffer.Size, Allocator.None);
 
@@ -171,7 +173,7 @@ namespace UImGui.Renderer
 			_mesh.UploadMeshData(false);
 		}
 
-		private void CreateDrawCommands(CommandBuffer commandBuffer, ImDrawDataPtr drawData, Vector2 fbSize)
+		private void CreateDrawCommands(RasterCommandBuffer commandBuffer, ImDrawDataPtr drawData, Vector2 fbSize)
 		{
 			IntPtr prevTextureId = IntPtr.Zero;
 			Vector4 clipOffset = new Vector4(drawData.DisplayPos.x, drawData.DisplayPos.y,
@@ -181,7 +183,8 @@ namespace UImGui.Renderer
 
 			commandBuffer.SetViewport(new Rect(0f, 0f, fbSize.x, fbSize.y));
 			commandBuffer.SetViewProjectionMatrices(
-				Matrix4x4.Translate(new Vector3(0.5f / fbSize.x, 0.5f / fbSize.y, 0f)), // Small adjustment to improve text.
+				Matrix4x4.Translate(new Vector3(0.5f / fbSize.x, 0.5f / fbSize.y,
+					0f)), // Small adjustment to improve text.
 				Matrix4x4.Ortho(0f, fbSize.x, fbSize.y, 0f, 0f, 1f));
 
 			int subOf = 0;
@@ -193,7 +196,8 @@ namespace UImGui.Renderer
 					ImDrawCmdPtr drawCmd = drawList.CmdBuffer[i];
 					if (drawCmd.UserCallback != IntPtr.Zero)
 					{
-						UserDrawCallback userDrawCallback = Marshal.GetDelegateForFunctionPointer<UserDrawCallback>(drawCmd.UserCallback);
+						UserDrawCallback userDrawCallback =
+							Marshal.GetDelegateForFunctionPointer<UserDrawCallback>(drawCmd.UserCallback);
 						userDrawCallback(drawList, drawCmd);
 					}
 					else
@@ -209,18 +213,21 @@ namespace UImGui.Renderer
 							prevTextureId = drawCmd.TextureId;
 
 							// TODO: Implement ImDrawCmdPtr.GetTexID().
-							bool hasTexture = _textureManager.TryGetTexture(prevTextureId, out UnityEngine.Texture texture);
+							bool hasTexture =
+								_textureManager.TryGetTexture(prevTextureId, out UnityEngine.Texture texture);
 							//Assert.IsTrue(hasTexture, $"Texture {prevTextureId} does not exist. Try to use UImGuiUtility.GetTextureID().");
-							
-							if(texture)
+
+							if (texture)
 								_materialProperties.SetTexture(_textureID, texture ?? Texture2D.blackTexture);
 						}
 
-						commandBuffer.EnableScissorRect(new Rect(clip.x, fbSize.y - clip.w, clip.z - clip.x, clip.w - clip.y)); // Invert y.
+						commandBuffer.EnableScissorRect(new Rect(clip.x, fbSize.y - clip.w, clip.z - clip.x,
+							clip.w - clip.y)); // Invert y.
 						commandBuffer.DrawMesh(_mesh, Matrix4x4.identity, _material, subOf, -1, _materialProperties);
 					}
 				}
 			}
+
 			commandBuffer.DisableScissorRect();
 		}
 	}
