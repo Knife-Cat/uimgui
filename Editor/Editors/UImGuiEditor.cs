@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Reflection;
 using ImGuiNET;
 using System.Text;
 using UImGui.Platform;
@@ -12,7 +14,6 @@ namespace UImGui.Editor
 	{
 		private SerializedProperty _doGlobalEvents;
 		private SerializedProperty _camera;
-		private SerializedProperty _renderFeature;
 		private SerializedProperty _renderer;
 		private SerializedProperty _platform;
 		private SerializedProperty _initialConfiguration;
@@ -37,10 +38,6 @@ namespace UImGui.Editor
 			EditorGUI.BeginChangeCheck();
 
 			EditorGUILayout.PropertyField(_doGlobalEvents);
-			if (RenderUtility.IsUsingURP())
-			{
-				EditorGUILayout.PropertyField(_renderFeature);
-			}
 
 			EditorGUILayout.PropertyField(_camera);
 			EditorGUILayout.PropertyField(_renderer);
@@ -72,7 +69,6 @@ namespace UImGui.Editor
 		{
 			_doGlobalEvents = serializedObject.FindProperty("_doGlobalEvents");
 			_camera = serializedObject.FindProperty("_camera");
-			_renderFeature = serializedObject.FindProperty("_renderFeature");
 			_renderer = serializedObject.FindProperty("_rendererType");
 			_platform = serializedObject.FindProperty("_platformType");
 			_initialConfiguration = serializedObject.FindProperty("_initialConfiguration");
@@ -112,12 +108,7 @@ namespace UImGui.Editor
 			{
 				_messages.AppendLine("Must assign a Camera.");
 			}
-
-			if (RenderUtility.IsUsingURP() && _renderFeature.objectReferenceValue == null)
-			{
-				_messages.AppendLine("Must assign a RenderFeature when using the URP.");
-			}
-
+			
 #if !UNITY_2020_1_OR_NEWER
 			if ((RenderType)_renderer.enumValueIndex == RenderType.Mesh)
 			{
@@ -133,7 +124,7 @@ namespace UImGui.Editor
 
 			if ((configFlags.intValue & (int)ImGuiConfigFlags.ViewportsEnable) != 0)
 			{
-				_messages.AppendLine("Unity hasn't support different viewports.");
+				_messages.AppendLine("Unity will not support different viewports.");
 			}
 
 			if (_shaders.objectReferenceValue == null || _style.objectReferenceValue == null)
