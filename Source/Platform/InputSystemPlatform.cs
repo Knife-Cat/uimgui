@@ -48,7 +48,7 @@ namespace UImGui.Platform
 
             io.MousePos = Utils.ScreenToImGui(mouse.position.ReadValue());
 
-            var mouseScroll = mouse.scroll.ReadValue() / 120f;
+            var mouseScroll = mouse.scroll.ReadValue();
             io.MouseWheel = mouseScroll.y;
             io.MouseWheelH = mouseScroll.x;
 
